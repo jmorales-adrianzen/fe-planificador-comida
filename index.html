@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Planificador de Comida Semanal</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f6f8; color: #2d3748; margin: 0; padding: 12px; }
+    .container { max-width: 800px; background: #ffffff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); margin: 0 auto; }
+    h1 { color: #1a202c; text-align: center; margin-top: 5px; margin-bottom: 20px; font-size: 1.5rem; font-weight: 700; }
+    h2 { color: #2b6cb0; border-bottom: 2px solid #edf2f7; padding-bottom: 8px; margin-top: 24px; font-size: 1.1rem; font-weight: 600; }
+    
+    /* Selector de País */
+    .country-group { display: flex; align-items: center; justify-content: space-between; background: #fffaf0; padding: 14px 18px; border-radius: 12px; border: 1px solid #feebc8; margin-bottom: 12px; }
+    .country-label { font-weight: 600; color: #c05621; font-size: 1rem; }
+    .country-select { padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: white; font-size: 0.95rem; font-weight: bold; color: #2d3748; outline: none; cursor: pointer; }
+
+    /* Contador de Personas */
+    .counter-group { display: flex; align-items: center; justify-content: space-between; background: #ebf8ff; padding: 14px 18px; border-radius: 12px; border: 1px solid #bee3f8; }
+    .counter-label { font-weight: 600; color: #2b6cb0; font-size: 1rem; }
+    .counter-controls { display: flex; align-items: center; gap: 14px; }
+    .btn-counter { background-color: #3182ce; color: white; border: none; width: 42px; height: 42px; border-radius: 50%; font-size: 22px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, transform 0.1s; }
+    .btn-counter:active { transform: scale(0.95); }
+    .btn-counter:disabled { background-color: #cbd5e0; cursor: not-allowed; }
+    .counter-value { font-size: 22px; font-weight: bold; width: 32px; text-align: center; color: #2d3748; }
+
+    /* Encabezado del Menú y Botón Aleatorio */
+    .section-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 24px; border-bottom: 2px solid #edf2f7; padding-bottom: 8px; }
+    .section-header h2 { margin: 0; border: none; padding: 0; }
+    .btn-random { background-color: #805ad5; color: white; border: none; padding: 8px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.2s, transform 0.1s; }
+    .btn-random:active { transform: scale(0.96); background-color: #6b46c1; }
+
+    /* Menú Semanal Responsivo */
+    .days-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
+    @media (min-width: 600px) { .days-grid { grid-template-columns: 1fr 1fr; } }
+    .day-box { background: #f7fafc; padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0; }
+    .day-box label { font-weight: 600; display: block; margin-bottom: 4px; color: #4a5568; font-size: 0.9rem; }
+    select { width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: white; font-size: 0.95rem; color: #2d3748; outline: none; }
+
+    /* Despensa / Checkboxes Móviles */
+    .select-all-box { background: #ebf8ff; padding: 10px 12px; border-radius: 8px; font-size: 0.9rem; font-weight: 700; color: #2b6cb0; border: 1px solid #bee3f8; margin-top: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .select-all-box input { width: 18px; height: 18px; accent-color: #3182ce; cursor: pointer; }
+    .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-top: 10px; }
+    .checkbox-card { background: #f7fafc; padding: 10px 12px; border-radius: 8px; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 8px; border: 1px solid #e2e8f0; user-select: none; }
+    .checkbox-card input { width: 18px; height: 18px; accent-color: #3182ce; cursor: pointer; }
+
+    /* Botón de Acción */
+    .btn-submit { background-color: #38a169; color: white; border: none; padding: 16px; font-size: 1.05rem; font-weight: 700; border-radius: 12px; cursor: pointer; width: 100%; margin-top: 24px; transition: background 0.2s, transform 0.1s; box-shadow: 0 4px 12px rgba(56,161,105,0.25); }
+    .btn-submit:active { transform: scale(0.98); background-color: #2f855a; }
+
+    /* Spinner de Carga */
+    .spinner-container { display: none; text-align: center; margin: 24px 0; }
+    .spinner { border: 4px solid #e2e8f0; border-top: 4px solid #38a169; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 0 auto 10px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .spinner-text { font-size: 0.95rem; color: #4a5568; font-weight: 600; }
+
+    /* Resultados */
+    .result-box { margin-top: 24px; padding: 16px; background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 12px; }
+    .cost-total { background: #38a169; color: white; padding: 12px 16px; border-radius: 10px; display: block; text-align: center; font-size: 1.15rem; font-weight: 700; margin-top: 16px; }
+    ul { padding-left: 20px; margin: 8px 0; }
+    li { margin-bottom: 6px; font-size: 0.95rem; }
+
+    /* Sugerencias y Cantidades */
+    .prep-box { margin-top: 24px; padding: 16px; background: #fffaf0; border: 1px solid #feebc8; border-radius: 12px; }
+    .prep-card { background: #ffffff; padding: 14px; border-radius: 10px; margin-bottom: 18px; border-left: 4px solid #ed8936; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+    .prep-card:last-child { margin-bottom: 0; }
+    .prep-day { font-weight: 700; color: #dd6b20; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .prep-dish { font-weight: 700; color: #2d3748; font-size: 1.1rem; margin: 2px 0 8px 0; }
+    
+    /* Estilo de Imagen Referencial por URL */
+    .dish-img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin: 8px 0 12px 0; border: 1px solid #e2e8f0; }
+
+    .prep-quantities { font-size: 0.88rem; background: #edf2f7; padding: 10px 12px; border-radius: 6px; margin-bottom: 10px; color: #4a5568; line-height: 1.5; }
+    .prep-pre { background: #feebc8; color: #7b341e; padding: 8px 12px; border-radius: 6px; font-size: 0.88rem; font-weight: 600; margin-bottom: 10px; display: block; border-left: 3px solid #dd6b20; }
+    .prep-desc { font-size: 0.92rem; color: #2d3748; line-height: 1.55; background: #faf5ff; padding: 12px; border-radius: 8px; border: 1px solid #e9d8fd; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Planificador de comida semanal</h1>
+  
+  <!-- Selección de País -->
+  <div class="country-group">
+    <span class="country-label">🌎 Selección de País:</span>
+    <select id="selectPais" class="country-select" onchange="cambiarPais()">
+      <option value="PE">🇵🇪 Perú (S/ PEN)</option>
+      <option value="AR">🇦🇷 Argentina ($ ARS)</option>
+    </select>
+  </div>
+
+  <!-- Personas -->
+  <div class="counter-group">
+    <span class="counter-label">👥 Cantidad de personas:</span>
+    <div class="counter-controls">
+      <button class="btn-counter" id="btnMinus" onclick="cambiarPersonas(-1)">−</button>
+      <span class="counter-value" id="cantPersonas">4</span>
+      <button class="btn-counter" id="btnPlus" onclick="cambiarPersonas(1)">+</button>
+    </div>
+  </div>
+
+  <!-- Menú Semanal con Botón Aleatorio -->
+  <div class="section-header">
+    <h2>📅 Menú Semanal</h2>
+    <button class="btn-random" onclick="seleccionarAleatorio()">🎲 Seleccionar Platos Aleatoriamente</button>
+  </div>
+  <div class="days-grid">
+    <div class="day-box"><label>Lunes:</label><select id="lunes" class="select-plato"></select></div>
+    <div class="day-box"><label>Martes:</label><select id="martes" class="select-plato"></select></div>
+    <div class="day-box"><label>Miércoles:</label><select id="miercoles" class="select-plato"></select></div>
+    <div class="day-box"><label>Jueves:</label><select id="jueves" class="select-plato"></select></div>
+    <div class="day-box"><label>Viernes:</label><select id="viernes" class="select-plato"></select></div>
+    <div class="day-box"><label>Sábado:</label><select id="sabado" class="select-plato"></select></div>
+    <div class="day-box"><label>Domingo:</label><select id="domingo" class="select-plato"></select></div>
+  </div>
+
+  <!-- Despensa -->
+  <h2>🥫 ¿Qué ingredientes YA tienes en casa?</h2>
+  <label class="select-all-box">
+    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)">
+    <span>☑️ Marcar / Desmarcar todos</span>
+  </label>
+
+  <div class="checkbox-grid">
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="arroz" onchange="actualizarEstadoSelectAll()"> Arroz</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="aceite" onchange="actualizarEstadoSelectAll()"> Aceite</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="sal" onchange="actualizarEstadoSelectAll()"> Sal</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="pimienta" onchange="actualizarEstadoSelectAll()"> Pimienta</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="comino" onchange="actualizarEstadoSelectAll()"> Comino</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="azucar" onchange="actualizarEstadoSelectAll()"> Azúcar</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="fideos" onchange="actualizarEstadoSelectAll()"> Fideos</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="atun" onchange="actualizarEstadoSelectAll()"> Atún en lata</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="lenteja_id" onchange="actualizarEstadoSelectAll()"> Lentejas</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="frejol_id" onchange="actualizarEstadoSelectAll()"> Fréjol / Porotos</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="hamburguesa" onchange="actualizarEstadoSelectAll()"> Hamburguesas</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="nuggets" onchange="actualizarEstadoSelectAll()"> Nuggets</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="leche" onchange="actualizarEstadoSelectAll()"> Leche</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="mantequilla" onchange="actualizarEstadoSelectAll()"> Mantequilla / Manteca</label>
+    <label class="checkbox-card"><input type="checkbox" class="despensa" value="galleta_soda" onchange="actualizarEstadoSelectAll()"> Galleta Soda / Tostadas</label>
+  </div>
+
+  <button class="btn-submit" onclick="ejecutarGeneracion()">Generar Lista y Sugerencias</button>
+
+  <!-- Spinner de Carga -->
+  <div id="spinner" class="spinner-container">
+    <div class="spinner"></div>
+    <div class="spinner-text">Calculando ingredientes y organizando recetas...</div>
+  </div>
+
+  <!-- Lista de Compras -->
+  <div id="resultado" class="result-box" style="display:none;">
+    <h2 style="margin-top:0; border:none; color:#276749;">🛒 Lista de Compras Semanal</h2>
+    <div id="lista-ingredientes"></div>
+    <div class="cost-total">Estimado de Gastos: <span id="costo-total">S/ 0.00</span></div>
+  </div>
+
+  <!-- Sugerencias de Preparación -->
+  <div id="seccion-sugerencias" class="prep-box" style="display:none;">
+    <h2 style="margin-top:0; border:none; color:#c05621;">🍳 Guía de Preparación e Insumos por Plato</h2>
+    <div id="lista-sugerencias"></div>
+  </div>
+</div>
+
+<script>
+  let personas = 4;
+  const maxPersonas = 10;
+  const minPersonas = 1;
+  let paisActual = "PE";
+
+  // Catálogos por País
+  const CatPlatosPeru = {
+    ninguno: {
+      nombre: "— Ninguno / Descanso —",
+      ingredientes: [],
+      sugerenciaPrevia: "",
+      preparacion: "",
+      imagen: ""
+    },
+    lentejas_pescado: {
+      nombre: "Lentejas con pescado frito",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Lentejas_con_pescado.jpg/800px-Lentejas_con_pescado.jpg",
+      ingredientes: [
+        { id: "lenteja_id", nombre: "Lentejas", cant: 125, unidad: "g", precioUnit: 0.01 },
+        { id: "pescado", nombre: "Pescado Bonito", cant: 200, unidad: "g", precioUnit: 0.012 },
+        { id: "cebolla_ajo", nombre: "Cebolla y Ajo", cant: 40, unidad: "g", precioUnit: 0.006 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Remojar las lentejas 2 a 3 horas antes en agua templada con una pizca de sal para acelerar su cocción y mejorar su digestibilidad.",
+      preparacion: "1. Sofríe en una olla cebolla finamente picada y ajo molido hasta que transparenten.<br>2. Agrega las lentejas escurridas, cubre con agua o caldo caliente y cocina a fuego medio por 25 min.<br>3. Sazona el pescado Bonito con sal, pimienta, comino y gotas de limón.<br>4. Pásalo por harina limpia, sacude el exceso y fríelo en aceite bien caliente por 3 min por lado hasta dorar saliendo crujiente.<br>5. Sirve acompañado de salsa criolla fresca."
+    },
+    carne_papas: {
+      nombre: "Carne frita con papas doradas, ensalada y arroz",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Bistec_a_la_plancha_con_papas.jpg/800px-Bistec_a_la_plancha_con_papas.jpg",
+      ingredientes: [
+        { id: "carne", nombre: "Bistec de carne", cant: 150, unidad: "g", precioUnit: 0.033 },
+        { id: "papa", nombre: "Papa Blanca/Canchán", cant: 200, unidad: "g", precioUnit: 0.003 },
+        { id: "ensalada", nombre: "Tomate y Lechuga", cant: 150, unidad: "g", precioUnit: 0.005 },
+        { id: "limon", nombre: "Limón", cant: 1, unidad: "unid", precioUnit: 0.3 },
+        { id: "arroz", nombre: "Arroz", cant: 100, unidad: "g", precioUnit: 0.004 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Sancochar las papas peladas con sal con anticipación para dorarlas de inmediato sin que absorban demasiado aceite.",
+      preparacion: "1. Corta las papas sancochadas en rodajas gruesas y dóralas en sartén caliente con mantequilla o aceite hasta formar costra dorada.<br>2. Condimenta la carne con pimienta, comino, abundante ajo y sal al gusto.<br>3. Pásala a fuego alto durante 2 minutos por lado para sellar todos sus jugos.<br>4. Corta lechuga y tomate en rodajas, adereza con limón, aceite y sal minutos antes de servir."
+    },
+    pollo_plancha: {
+      nombre: "Pollo a la plancha con ensalada y papas doradas",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Pechuga_de_pollo_a_la_plancha.jpg/800px-Pechuga_de_pollo_a_la_plancha.jpg",
+      ingredientes: [
+        { id: "pollo_pechuga", nombre: "Pechuga de pollo", cant: 175, unidad: "g", precioUnit: 0.016 },
+        { id: "papa", nombre: "Papa Blanca/Canchán", cant: 200, unidad: "g", precioUnit: 0.003 },
+        { id: "ensalada", nombre: "Tomate y Lechuga", cant: 150, unidad: "g", precioUnit: 0.005 },
+        { id: "limon", nombre: "Limón", cant: 1, unidad: "unid", precioUnit: 0.3 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Filetear la pechuga delgada y marinar con ajo, orégano seco, pimienta y chorro de vinagre durante al menos 30 minutos.",
+      preparacion: "1. Calienta la plancha o sartén antiadherente a fuego máximo con un pincelado de aceite.<br>2. Coloca los filetes de pollo y déjalos cocinar 3 a 4 minutos por lado sin moverlos para marcar bien la carne.<br>3. Saltea las papas pre-sancochadas en la misma sartén para aprovechar los jugos del pollo.<br>4. Acompaña con abundante ensalada fresca aderezada al instante."
+    },
+    frejol_atun: {
+      nombre: "Frejol con croqueta de atún",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Seco_de_cabrito_con_frijoles.jpg/800px-Seco_de_cabrito_con_frijoles.jpg",
+      ingredientes: [
+        { id: "frejol_id", nombre: "Fréjol Canario/Panamito", cant: 125, unidad: "g", precioUnit: 0.01 },
+        { id: "atun", nombre: "Lata de Atún", cant: 0.5, unidad: "lata", precioUnit: 5.0 },
+        { id: "huevos", nombre: "Huevos", cant: 1, unidad: "unid", precioUnit: 0.7 },
+        { id: "cebolla_ajo", nombre: "Cebolla y Ajo", cant: 40, unidad: "g", precioUnit: 0.006 },
+        { id: "arroz", nombre: "Arroz", cant: 100, unidad: "g", precioUnit: 0.004 }
+      ],
+      sugerenciaPrevia: "⚠️ Tarea previa fundamental: Remojar los fréjoles en abundante agua limpia desde la noche anterior (mínimo 8 horas).",
+      preparacion: "1. Sancocha los fréjoles remojados en olla a presión o tradicional con un trozo de tocino u orégano.<br>2. Prepara un aderezo criollo denso con cebolla picadita y ajo, vierte sobre los fréjoles y bate vigorosamente para espesar el caldo.<br>3. Drena el atún, mézclalo con huevo, cebolla china, galleta molida o harina, pimienta y sal.<br>4. Forme hamburguesitas/croquetas y fríelas hasta que queden doraditas por fuera."
+    },
+    pure_broaster: {
+      nombre: "Puré con pollo broaster y arroz",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Pollo_frito_con_pure.jpg/800px-Pollo_frito_con_pure.jpg",
+      ingredientes: [
+        { id: "pollo_presas", nombre: "Pollo en presas", cant: 300, unidad: "g", precioUnit: 0.011 },
+        { id: "papa", nombre: "Papa Amarilla/Canchán", cant: 250, unidad: "g", precioUnit: 0.0035 },
+        { id: "leche", nombre: "Leche evaporada", cant: 0.25, unidad: "lata", precioUnit: 4.2 },
+        { id: "mantequilla", nombre: "Mantequilla", cant: 20, unidad: "g", precioUnit: 0.02 },
+        { id: "harina_chuno", nombre: "Harina y Chuño", cant: 80, unidad: "g", precioUnit: 0.005 },
+        { id: "huevos", nombre: "Huevos", cant: 0.5, unidad: "unid", precioUnit: 0.7 },
+        { id: "arroz", nombre: "Arroz", cant: 100, unidad: "g", precioUnit: 0.004 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Sancochar ligeramente las presas de pollo durante 10 min en agua con sal para garantizar que no queden crudas cerca del hueso al freír.",
+      preparacion: "1. Prensa la papa sancochada tibia. En una olla disuelve mantequilla con leche evaporada tibia, integra la papa prensada y remueve vigorosamente hasta cremar.<br>2. Para el empanizado: Mezcla harina con chuño, pimienta, comino, pimentón dulce y sal.<br>3. Pasa el pollo precocido por huevo batido y empápalo en la mezcla seca.<br>4. Fríe en abundante aceite hondo caliente hasta lograr una capa crocante y dorada."
+    },
+    tallarin_verde: {
+      nombre: "Tallarín verde con chuleta de cerdo",
+      imagen: "imagenes/tallarin-verde-con-chuleta.jpg",
+      ingredientes: [
+        { id: "chuleta", nombre: "Chuleta de Cerdo", cant: 200, unidad: "g", precioUnit: 0.02 },
+        { id: "fideos", nombre: "Fideos Spaguetti", cant: 125, unidad: "g", precioUnit: 0.006 },
+        { id: "espinaca_albahaca", nombre: "Espinaca y Albahaca", cant: 100, unidad: "g", precioUnit: 0.008 },
+        { id: "queso_fresco", nombre: "Queso fresco", cant: 60, unidad: "g", precioUnit: 0.028 },
+        { id: "leche", nombre: "Leche evaporada", cant: 0.2, unidad: "lata", precioUnit: 4.2 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Deshojar, lavar cuidadosamente las hojas de espinaca y albahaca, y dorar ligeramente la albahaca en sartén para potenciar su aroma.",
+      preparacion: "1. Blanquea la espinaca en agua hirviendo por 1 minuto. Licúala junto a la albahaca, queso fresco, leche evaporada y sofrito de cebolla.<br>2. Cocina los fideos al dente en abundante agua hirviendo con sal.<br>3. Vierte la salsa verde sobre los fideos recién escurridos y mezcla a fuego bajo por 2 min.<br>4. Dora las chuletas de cerdo previamente marinadas con ajo, vinagre, pimienta y sal en sartén bien caliente."
+    },
+    aji_gallina: {
+      nombre: "Ají de gallina",
+      imagen: "imagenes/aji-de-gallina.jpg",
+      ingredientes: [
+        { id: "pollo_pechuga", nombre: "Pechuga de pollo", cant: 200, unidad: "g", precioUnit: 0.016 },
+        { id: "aji_amarillo", nombre: "Ají amarillo molido", cant: 40, unidad: "g", precioUnit: 0.01 },
+        { id: "galleta_soda", nombre: "Galleta de soda o Pan", cant: 40, unidad: "g", precioUnit: 0.008 },
+        { id: "leche", nombre: "Leche evaporada", cant: 0.2, unidad: "lata", precioUnit: 4.2 },
+        { id: "papa", nombre: "Papa Amarilla", cant: 150, unidad: "g", precioUnit: 0.004 },
+        { id: "huevos", nombre: "Huevos duros", cant: 0.5, unidad: "unid", precioUnit: 0.7 },
+        { id: "arroz", nombre: "Arroz", cant: 100, unidad: "g", precioUnit: 0.004 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Sancochar la pechuga de pollo con una rama de apio y deshilacharla fina. Remojar la galleta de soda en leche con anticipación.",
+      preparacion: "1. Prepara un aderezo muy paciente con cebolla picadita, ajo molido y ají amarillo licuado hasta que el aceite se separe.<br>2. Agrega la galleta rehidratada licuada junto con un poco de caldo de pollo caliente.<br>3. Incorpora el pollo deshilachado, ajusta sal y remueve constantemente hasta lograr textura cremosa.<br>4. Sirve sobre rodajas de papa amarilla sancochada y decora con huevo duro y aceituna."
+    },
+    chaufa_pollo: {
+      nombre: "Arroz chaufa de pollo",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Arroz_chaufa_peruano.jpg/800px-Arroz_chaufa_peruano.jpg",
+      ingredientes: [
+        { id: "pollo_pechuga", nombre: "Pechuga de pollo en cubos", cant: 180, unidad: "g", precioUnit: 0.016 },
+        { id: "arroz", nombre: "Arroz cocido frío", cant: 120, unidad: "g", precioUnit: 0.004 },
+        { id: "huevos", nombre: "Huevos", cant: 1, unidad: "unid", precioUnit: 0.7 },
+        { id: "cebolla_china", nombre: "Cebolla china y Kion", cant: 50, unidad: "g", precioUnit: 0.008 },
+        { id: "sillao", nombre: "Sillao", cant: 20, unidad: "ml", precioUnit: 0.01 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa indispensable: Contar con el arroz blanco cocido previamente y bien frío de refrigeradora para que no se apelmace en el wok.",
+      preparacion: "1. En un wok o sartén muy caliente con poco aceite, saltea los cubitos de pollo sazonados con sillao y kion rayado.<br>2. Haz una tortilla delgada con los huevos, pícala en cuadritos y reserva.<br>3. Incorpora el arroz frío al wok hirviendo y saltea con movimientos envolventes.<br>4. Vierte sillao, gotas de aceite de ajonjolí y finaliza agregando la tortilla junto a la cebolla china fresca picada."
+    },
+    pollo_guisado: {
+      nombre: "Pollo guisado con arroz",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Guiso_de_pollo_peruano.jpg/800px-Guiso_de_pollo_peruano.jpg",
+      ingredientes: [
+        { id: "pollo_presas", nombre: "Pollo en presas", cant: 250, unidad: "g", precioUnit: 0.011 },
+        { id: "papa", nombre: "Papa Blanca", cant: 150, unidad: "g", precioUnit: 0.003 },
+        { id: "zanahoria_alverja", nombre: "Zanahoria y Alverjitas", cant: 80, unidad: "g", precioUnit: 0.006 },
+        { id: "cebolla_ajo", nombre: "Cebolla y Ajo", cant: 40, unidad: "g", precioUnit: 0.006 },
+        { id: "arroz", nombre: "Arroz", cant: 100, unidad: "g", precioUnit: 0.004 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Picar la cebolla en cuadritos mínimos, pelar y cortar la papa en cubos medianos.",
+      preparacion: "1. Sella las presas de pollo salpimentadas en la olla hasta que tomen tono dorado.<br>2. Retira el pollo, dora cebolla, ajo y ají panca en el mismo aceite.<br>3. Regresa el pollo, agrega la zanahoria picada, alverjitas, papa en cubos y un chorrito de agua o caldo.<br>4. Tapa y deja guisar a fuego medio-bajo durante 20 minutos hasta que la papa esté suave y la salsa reducida."
+    },
+    estofado_pollo: {
+      nombre: "Estofado de pollo",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Estofado_de_pollo_peruano.jpg/800px-Estofado_de_pollo_peruano.jpg",
+      ingredientes: [
+        { id: "pollo_presas", nombre: "Pollo en presas", cant: 250, unidad: "g", precioUnit: 0.011 },
+        { id: "tomate_panca", nombre: "Tomate y Ají Panca", cant: 80, unidad: "g", precioUnit: 0.007 },
+        { id: "papa", nombre: "Papa Blanca", cant: 150, unidad: "g", precioUnit: 0.003 },
+        { id: "zanahoria_alverja", nombre: "Zanahoria y Alverjitas", cant: 80, unidad: "g", precioUnit: 0.006 },
+        { id: "arroz", nombre: "Arroz", cant: 100, unidad: "g", precioUnit: 0.004 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Licuar tomate fresco pelado junto con ají panca para lograr un aderezo base sabroso.",
+      preparacion: "1. Dora las presas salpimentadas. Prepara el aderezo cocinando cebolla picada con el tomate licuado, laurel y hongo seco.<br>2. Agrega las presas, zanahorias en rodajas, alverjitas y las papas peladas por la mitad.<br>3. Añade medio vaso de vino tinto o agua y cocina a fuego lento por 25 min.<br>4. Sirve bien caliente acompañado de arroz blanco graneado."
+    },
+    seco_pollo_frejoles: {
+      nombre: "Seco de pollo con frejoles",
+      imagen: "imagenes/frejoles-de-res.jpg",
+      ingredientes: [
+        { id: "pollo_presas", nombre: "Pollo en presas", cant: 250, unidad: "g", precioUnit: 0.011 },
+        { id: "culantro", nombre: "Culantro licuado", cant: 40, unidad: "g", precioUnit: 0.01 },
+        { id: "frejol_id", nombre: "Fréjol cocido", cant: 125, unidad: "g", precioUnit: 0.01 },
+        { id: "cebolla_ajo", nombre: "Cebolla y Ajo", cant: 40, unidad: "g", precioUnit: 0.006 },
+        { id: "arroz", nombre: "Arroz", cant: 100, unidad: "g", precioUnit: 0.004 }
+      ],
+      sugerenciaPrevia: "⚠️ Tarea previa: Dejar fréjoles en remojo desde la noche anterior y licuar el culantro con un chorrito de chicha de jora o cerveza negra.",
+      preparacion: "1. Sofríe lentamente cebolla picada, ajo y ají amarillo en pasta hasta dorar. Añade el culantro licuado y sofríe 5 min más para quitar el gusto a crudo.<br>2. Agrega el pollo y arvejas, tapa y cocina en sus propios jugos a fuego lento por 20 min.<br>3. Sirve junto a los fréjoles bien cremosos guisados aparte y arroz blanco."
+    },
+    arroz_con_pollo: {
+      nombre: "Arroz con pollo",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Arroz_con_pollo_peruano.jpg/800px-Arroz_con_pollo_peruano.jpg",
+      ingredientes: [
+        { id: "pollo_presas", nombre: "Pollo en presas", cant: 250, unidad: "g", precioUnit: 0.011 },
+        { id: "culantro", nombre: "Culantro licuado", cant: 50, unidad: "g", precioUnit: 0.01 },
+        { id: "arroz", nombre: "Arroz", cant: 120, unidad: "g", precioUnit: 0.004 },
+        { id: "zanahoria_alverja", nombre: "Zanahoria y Alverja", cant: 80, unidad: "g", precioUnit: 0.007 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Licuar el culantro fresco con cerveza o agua tibia para obtener un color verde vivo.",
+      preparacion: "1. Sella las presas sazonadas en una olla con aceite y retíralas.<br>2. Sofreír cebolla, ajo, ají mirasol y culantro licuado hasta concentrar sabores.<br>3. Vierte el caldo o agua, reincorpora las presas y cocina 10 min. Retira las presas, agrega el arroz, zanahorias, alverjitas y pimiento.<br>4. Cocina a fuego bajo tapado hasta que el arroz quede perfectamente graneado verde."
+    },
+    tallarines_rojos_pollo: {
+      nombre: "Tallarines rojos con pollo",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Tallarines_rojos.jpg/800px-Tallarines_rojos.jpg",
+      ingredientes: [
+        { id: "pollo_presas", nombre: "Pollo en presas", cant: 250, unidad: "g", precioUnit: 0.011 },
+        { id: "fideos", nombre: "Fideos Spaguetti", cant: 125, unidad: "g", precioUnit: 0.006 },
+        { id: "tomate_panca", nombre: "Tomate y Zanahoria rallada", cant: 100, unidad: "g", precioUnit: 0.006 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Rallar finamente la zanahoria para incorporarla directamente al aderezo de tomate, aportando dulzor natural.",
+      preparacion: "1. Dora el pollo. Sofríe cebolla en cubitos, ají panca en pasta, ajo, hongo y laurel.<br>2. Añade el tomate licuado y la zanahoria rallada. Cocina a fuego lento para que tome cuerpo la salsa roja.<br>3. Introduce el pollo para que termine su cocción impregnándose de la salsa tuco.<br>4. Sirve sobre tallarines sancochados al dente y espolvorea queso parmesano al gusto."
+    },
+    tallarines_verdes_bistec: {
+      nombre: "Tallarines verdes con bistec",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Tallarines_verdes.jpg/800px-Tallarines_verdes.jpg",
+      ingredientes: [
+        { id: "carne", nombre: "Bistec de carne", cant: 150, unidad: "g", precioUnit: 0.033 },
+        { id: "fideos", nombre: "Fideos Spaguetti", cant: 125, unidad: "g", precioUnit: 0.006 },
+        { id: "espinaca_albahaca", nombre: "Espinaca y Albahaca", cant: 100, unidad: "g", precioUnit: 0.008 },
+        { id: "queso_fresco", nombre: "Queso fresco", cant: 60, unidad: "g", precioUnit: 0.028 },
+        { id: "leche", nombre: "Leche evaporada", cant: 0.2, unidad: "lata", precioUnit: 4.2 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Lavar bien la verdura y ablandar la carne dándole suaves golpecitos con un mazo de cocina.",
+      preparacion: "1. Saltea la albahaca y blanquea la espinaca. Licúalas con leche evaporada, queso fresco salado y un aderezo de cebolla sofrita.<br>2. Mezcla la salsa cremosa con los tallarines recién sancochados.<br>3. Cocina el bistec sazonado en sartén hirviendo por 1.5 min por lado.<br>4. Sirve de inmediato para disfrutar la jugosidad del bistec sobre la pasta verde."
+    },
+    lomo_saltado: {
+      nombre: "Lomo saltado",
+      imagen: "imagenes/lomo-saltado.jpg",
+      ingredientes: [
+        { id: "carne", nombre: "Carne de res en tiras", cant: 180, unidad: "g", precioUnit: 0.038 },
+        { id: "cebolla_tomate", nombre: "Cebolla y Tomate en gajos", cant: 180, unidad: "g", precioUnit: 0.006 },
+        { id: "papa", nombre: "Papa Canchán (frita)", cant: 200, unidad: "g", precioUnit: 0.0035 },
+        { id: "sillao", nombre: "Sillao y Vinagre", cant: 30, unidad: "ml", precioUnit: 0.01 },
+        { id: "arroz", nombre: "Arroz", cant: 100, unidad: "g", precioUnit: 0.004 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Cortar cebolla y tomate en gajos gruesos sin semillas, tener las papas fritas crocantes listas antes de encender el wok.",
+      preparacion: "1. Calienta un wok a fuego extremo con un hilito de aceite humo saliente.<br>2. Saltea las tiras de carne sazonadas en tandas pequeñas para flambear.<br>3. Agrega la cebolla, ají amarillo en tiras, tomate, vierte vinagre tinto y sillao rápidamente por los bordes del wok.<br>4. Apaga el fuego, mezcla con las papas fritas y culantro picado. Sirve inmediatamente junto a arroz blanco."
+    },
+    pollo_saltado: {
+      nombre: "Pollo saltado",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Pollo_saltado_peru.jpg/800px-Pollo_saltado_peru.jpg",
+      ingredientes: [
+        { id: "pollo_pechuga", nombre: "Pechuga en tiras", cant: 180, unidad: "g", precioUnit: 0.016 },
+        { id: "cebolla_tomate", nombre: "Cebolla y Tomate en gajos", cant: 180, unidad: "g", precioUnit: 0.006 },
+        { id: "papa", nombre: "Papa frita", cant: 200, unidad: "g", precioUnit: 0.003 },
+        { id: "sillao", nombre: "Sillao y Vinagre", cant: 30, unidad: "ml", precioUnit: 0.01 },
+        { id: "arroz", nombre: "Arroz", cant: 100, unidad: "g", precioUnit: 0.004 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Cortar la pechuga en tiras gruesas y salpimentar minutos antes de entrar al sartén.",
+      preparacion: "1. Saltea las tiras de pollo a fuego máximo hasta lograr un sellado dorado superficial.<br>2. Agrega la cebolla roja en gajos gruesos y ají amarillo; saltea durante 1 minuto.<br>3. Añade los tomates, sillao y chorrito de vinagre para levantar los sabores ahumados.<br>4. Combina con papas fritas crocantes y sirve al momento."
+    },
+    bistec_pobre: {
+      nombre: "Bistec a lo pobre",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Bistec_a_lo_pobre.jpg/800px-Bistec_a_lo_pobre.jpg",
+      ingredientes: [
+        { id: "carne", nombre: "Bistec de carne", cant: 160, unidad: "g", precioUnit: 0.033 },
+        { id: "papa", nombre: "Papa frita", cant: 200, unidad: "g", precioUnit: 0.003 },
+        { id: "huevos", nombre: "Huevos", cant: 1, unidad: "unid", precioUnit: 0.7 },
+        { id: "platano", nombre: "Plátano de isla", cant: 1, unidad: "unid", precioUnit: 0.8 },
+        { id: "arroz", nombre: "Arroz", cant: 100, unidad: "g", precioUnit: 0.004 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Freír primero las papas fritas y plátanos para tener la guarnición caliente lista al servir la carne.",
+      preparacion: "1. Fríe el plátano de isla cortado a lo largo hasta que caramelice por fuera.<br>2. Fríe el huevo en aceite asegurando la yema tierna y la clara crujiente por los bordes.<br>3. Pasa el bistec sazonado con ajo, sal y pimienta por la plancha hirviendo.<br>4. Monta el bistec sobre una cama de arroz graneado, coloca el huevo montado arriba y acompaña con papas y plátano frito."
+    },
+    cau_cau_pollo: {
+      nombre: "Cau cau de pollo",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Cau_cau_de_pollo.jpg/800px-Cau_cau_de_pollo.jpg",
+      ingredientes: [
+        { id: "pollo_pechuga", nombre: "Pechuga en cubitos", cant: 180, unidad: "g", precioUnit: 0.016 },
+        { id: "papa", nombre: "Papa Canchán en cubitos", cant: 200, unidad: "g", precioUnit: 0.003 },
+        { id: "palillo_aji", nombre: "Palillo y Ají amarillo", cant: 30, unidad: "g", precioUnit: 0.008 },
+        { id: "arroz", nombre: "Arroz", cant: 100, unidad: "g", precioUnit: 0.004 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Picar el pollo y las papas en cubitos homogéneos pequeños para lograr cocción pareja.",
+      preparacion: "1. Sofríe cebolla en cuadritos con ajo, ají amarillo licuado y palillo en polvo hasta dorar.<br>2. Agrega los cubos de pollo y rehoga 3 minutos.<br>3. Incorpora las papas en cubitos, alverjitas y cubre con un poco de caldo caliente.<br>4. Cocina tapado por 15 min y finaliza espolvoreando hierbabuena fresca finamente picada."
+    },
+    arroz_tapado: {
+      nombre: "Arroz tapado",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Arroz_tapado_peruano.jpg/800px-Arroz_tapado_peruano.jpg",
+      ingredientes: [
+        { id: "carne_molida", nombre: "Carne molida", cant: 150, unidad: "g", precioUnit: 0.025 },
+        { id: "cebolla_tomate", nombre: "Cebolla picada fina", cant: 60, unidad: "g", precioUnit: 0.006 },
+        { id: "huevos", nombre: "Huevos duros y Pasas", cant: 0.5, unidad: "unid", precioUnit: 0.8 },
+        { id: "arroz", nombre: "Arroz", cant: 150, unidad: "g", precioUnit: 0.004 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Sancochar los huevos duros y picarlos; tener las pasas rehidratadas en agua tibia.",
+      preparacion: "1. Prepara el 'pino': Dora carne molida con cebolla picada, ajo, ají panca, comino, pasas y aceituna picada.<br>2. Añade el huevo duro picado al apagar el fuego.<br>3. Para el armado: En una taza redonda engrasada coloca una capa de arroz cocido, luego la carne guisada y cubre con otra capa de arroz prensando suavemente.<br>4. Desmolda en el plato y sirve con plátano frito y huevo."
+    },
+    quinua_huevo: {
+      nombre: "Quinua con arroz y huevo montado",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Guiso_de_quinua.jpg/800px-Guiso_de_quinua.jpg",
+      ingredientes: [
+        { id: "quinua", nombre: "Quinua perla", cant: 80, unidad: "g", precioUnit: 0.012 },
+        { id: "huevos", nombre: "Huevos", cant: 1, unidad: "unid", precioUnit: 0.7 },
+        { id: "queso_fresco", nombre: "Queso fresco en cubos", cant: 40, unidad: "g", precioUnit: 0.028 },
+        { id: "arroz", nombre: "Arroz", cant: 100, unidad: "g", precioUnit: 0.004 }
+      ],
+      sugerenciaPrevia: "⚠️ Tarea previa: Lavar la quinua refregándola suavemente en agua 3 o 4 veces en colador tupido para eliminar la saponina amarga.",
+      preparacion: "1. Dora cebolla, ajo y ají mirasol en una olla. Agrega la quinua lavada, cubre con agua o caldo y granea por 20 min.<br>2. Agrega cubos de queso fresco salado al apagar y mezcla delicadamente.<br>3. Fríe un huevo montado dejando la yema líquida.<br>4. Sirve la quinua cremosa con arroz blanco y el huevo recién frito arriba."
+    }
+  };
+
+  const CatPlatosArgentina = {
+    ninguno: {
+      nombre: "— Ninguno / Descanso —",
+      ingredientes: [],
+      sugerenciaPrevia: "",
+      preparacion: "",
+      imagen: ""
+    },
+    lentejas_pescado: {
+      nombre: "Lentejas con filet de pescado frito",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Lentejas_con_pescado.jpg/800px-Lentejas_con_pescado.jpg",
+      ingredientes: [
+        { id: "lenteja_id", nombre: "Lentejas secas", cant: 125, unidad: "g", precioUnit: 3.5 },
+        { id: "pescado", nombre: "Filet de Merluza", cant: 200, unidad: "g", precioUnit: 9.0 },
+        { id: "cebolla_ajo", nombre: "Cebolla y Ajo", cant: 40, unidad: "g", precioUnit: 2.0 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Dejar las lentejas en remojo 2 horas antes de cocinar para acelerar su cocción.",
+      preparacion: "1. Rehogá en una olla la cebolla picada fina y ajo en un chorrito de aceite.<br>2. Sumá las lentejas, cubrí con agua o caldo de verduras y cociná a fuego medio por 25 min.<br>3. Condimentá los filets de merluza con sal, pimienta y limón.<br>4. Pasalos por harina, rebozalos bien y freílos en aceite caliente por 3 min por lado hasta dorar.<br>5. Serví acompañado de ensalada o salsa criolla."
+    },
+    carne_papas: {
+      nombre: "Bife a la plancha con papas doradas, ensalada y arroz",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Bistec_a_la_plancha_con_papas.jpg/800px-Bistec_a_la_plancha_con_papas.jpg",
+      ingredientes: [
+        { id: "carne", nombre: "Bife de bola / Nalgas / Cuadril", cant: 150, unidad: "g", precioUnit: 12.0 },
+        { id: "papa", nombre: "Papa blanca / Spunta", cant: 200, unidad: "g", precioUnit: 1.2 },
+        { id: "ensalada", nombre: "Tomate y Lechuga", cant: 150, unidad: "g", precioUnit: 2.5 },
+        { id: "limon", nombre: "Limón", cant: 1, unidad: "unid", precioUnit: 150.0 },
+        { id: "arroz", nombre: "Arroz largo fino", cant: 100, unidad: "g", precioUnit: 1.8 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Hervir las papas peladas con sal previamente para dorarlas directo en la sartén.",
+      preparacion: "1. Cortá las papas hervidas en rodajas o cubos y doralas en sartén con manteca o aceite hasta formar costra crocante.<br>2. Condimentá la carne con ajo, sal y pimienta.<br>3. Hacé los bifes a la plancha bien caliente 2 minutos por lado.<br>4. Serví con ensalada fresca de lechuga y tomate aderezada con limón y aceite."
+    },
+    pollo_plancha: {
+      nombre: "Suprema de pollo a la plancha con ensalada y papas",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Pechuga_de_pollo_a_la_plancha.jpg/800px-Pechuga_de_pollo_a_la_plancha.jpg",
+      ingredientes: [
+        { id: "pollo_pechuga", nombre: "Suprema de pollo", cant: 175, unidad: "g", precioUnit: 6.5 },
+        { id: "papa", nombre: "Papa blanca / Spunta", cant: 200, unidad: "g", precioUnit: 1.2 },
+        { id: "ensalada", nombre: "Tomate y Lechuga", cant: 150, unidad: "g", precioUnit: 2.5 },
+        { id: "limon", nombre: "Limón", cant: 1, unidad: "unid", precioUnit: 150.0 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Marinar la suprema cortada fina con ajo picado, orégano, pimienta y un chorro de vinagre o limón.",
+      preparacion: "1. Calentá bien la plancha con unas gotas de aceite.<br>2. Cociná las supremas 4 minutos por lado sin moverlas para marcar bien la carne.<br>3. Dorá las papas previamente hervidas en la misma plancha.<br>4. Acompañá con ensalada fresca recién aderezada."
+    },
+    frejol_atun: {
+      nombre: "Porotos con buñuelos/croquetas de atún",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Seco_de_cabrito_con_frijoles.jpg/800px-Seco_de_cabrito_con_frijoles.jpg",
+      ingredientes: [
+        { id: "frejol_id", nombre: "Porotos alubia / frutilla", cant: 125, unidad: "g", precioUnit: 3.8 },
+        { id: "atun", nombre: "Lata de Atún", cant: 0.5, unidad: "lata", precioUnit: 1800.0 },
+        { id: "huevos", nombre: "Huevos", cant: 1, unidad: "unid", precioUnit: 250.0 },
+        { id: "cebolla_ajo", nombre: "Cebolla y Ajo", cant: 40, unidad: "g", precioUnit: 2.0 },
+        { id: "arroz", nombre: "Arroz largo fino", cant: 100, unidad: "g", precioUnit: 1.8 }
+      ],
+      sugerenciaPrevia: "⚠️ Tarea previa: Dejar los porotos en remojo en abundante agua desde la noche anterior (mínimo 8 horas).",
+      preparacion: "1. Herví los porotos en agua con sal o laurel hasta que estén tiernos.<br>2. Hacé un rehogado denso con cebolla y ajo en una olla y volcá los porotos con un poco de su caldo para espesar.<br>3. Escurrí el atún, mezclalo con huevo, harina o pan rallado, cebollita de verdeo y sal.<br>4. Formá croquetas y freílas en aceite caliente hasta dorar."
+    },
+    pure_broaster: {
+      nombre: "Puré de papas con pollo frito crocante y arroz",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Pollo_frito_con_pure.jpg/800px-Pollo_frito_con_pure.jpg",
+      ingredientes: [
+        { id: "pollo_presas", nombre: "Presas de Pollo", cant: 300, unidad: "g", precioUnit: 4.5 },
+        { id: "papa", nombre: "Papa negra / Spunta", cant: 250, unidad: "g", precioUnit: 1.2 },
+        { id: "leche", nombre: "Leche entera / fluida", cant: 0.1, unidad: "litro", precioUnit: 1200.0 },
+        { id: "mantequilla", nombre: "Manteca", cant: 20, unidad: "g", precioUnit: 15.0 },
+        { id: "harina_chuno", nombre: "Harina y Almidón de maíz", cant: 80, unidad: "g", precioUnit: 2.0 },
+        { id: "huevos", nombre: "Huevos", cant: 0.5, unidad: "unid", precioUnit: 250.0 },
+        { id: "arroz", nombre: "Arroz largo fino", cant: 100, unidad: "g", precioUnit: 1.8 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Hervir las presas de pollo 10 minutos antes en agua con sal para asegurar cocción pareja al freír.",
+      preparacion: "1. Pisá las papas hervidas calientes con manteca, leche tibia, sal y nuez moscada hasta cremar.<br>2. Mezclá harina con almidón de maíz, pimentón dulce, comino y pimienta.<br>3. Pasá el pollo hervido por huevo batido y luego por la mezcla de harina secándola bien.<br>4. Freí en abundante aceite caliente hasta que quede súper crocante."
+    },
+    tallarin_verde: {
+      nombre: "Tallarines con salsa pesto/verde y chuleta de cerdo",
+      imagen: "imagenes/tallarin-verde-con-chuleta.jpg",
+      ingredientes: [
+        { id: "chuleta", nombre: "Carré / Chuleta de cerdo", cant: 200, unidad: "g", precioUnit: 7.5 },
+        { id: "fideos", nombre: "Tallarines / Spaghettis", cant: 125, unidad: "g", precioUnit: 2.2 },
+        { id: "espinaca_albahaca", nombre: "Espinaca y Albahaca fresca", cant: 100, unidad: "g", precioUnit: 3.5 },
+        { id: "queso_fresco", nombre: "Queso cremoso / Cuartirolo", cant: 60, unidad: "g", precioUnit: 8.0 },
+        { id: "leche", nombre: "Leche entera", cant: 0.1, unidad: "litro", precioUnit: 1200.0 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Lavar bien las hojas de albahaca y espinaca antes de procesar.",
+      preparacion: "1. Pasá la espinaca por agua hirviendo 1 min. Procesá con albahaca, queso, un chorrito de leche y sofrito de cebolla.<br>2. Herví los tallarines en abundante agua con sal al dente.<br>3. Mezclá la pasta escurrida con la salsa verde cremosa a fuego suave.<br>4. Dorá la chuleta de cerdo a la plancha condimentada con ajo y pimienta."
+    },
+    aji_gallina: {
+      nombre: "Ají de pollo estilo peruano",
+      imagen: "imagenes/aji-de-gallina.jpg",
+      ingredientes: [
+        { id: "pollo_pechuga", nombre: "Suprema de pollo", cant: 200, unidad: "g", precioUnit: 6.5 },
+        { id: "aji_amarillo", nombre: "Ají/Morrón amarillo o ají molido", cant: 40, unidad: "g", precioUnit: 4.0 },
+        { id: "galleta_soda", nombre: "Pan lactal o Tostadas", cant: 40, unidad: "g", precioUnit: 3.0 },
+        { id: "leche", nombre: "Leche entera", cant: 0.1, unidad: "litro", precioUnit: 1200.0 },
+        { id: "papa", nombre: "Papa hervida", cant: 150, unidad: "g", precioUnit: 1.2 },
+        { id: "huevos", nombre: "Huevos duros", cant: 0.5, unidad: "unid", precioUnit: 250.0 },
+        { id: "arroz", nombre: "Arroz largo fino", cant: 100, unidad: "g", precioUnit: 1.8 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Hervir el pollo con verduritas y desmenuzarlo. Remojar el pan lactal en leche.",
+      preparacion: "1. Rehogá cebolla picada fina con ajo y ají/morrón procesado hasta ablandar.<br>2. Sumá el pan rehidratado procesado con un poco de caldo de pollo caliente.<br>3. Agregá el pollo desmenuzado, revolvé constantemente a fuego suave hasta que espese y quede cremoso.<br>4. Serví sobre rodajas de papa hervida con huevo duro picado y arroz."
+    },
+    chaufa_pollo: {
+      nombre: "Arroz salteado con pollo estilo Chaufa",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Arroz_chaufa_peruano.jpg/800px-Arroz_chaufa_peruano.jpg",
+      ingredientes: [
+        { id: "pollo_pechuga", nombre: "Suprema en cubos", cant: 180, unidad: "g", precioUnit: 6.5 },
+        { id: "arroz", nombre: "Arroz cocido frío", cant: 120, unidad: "g", precioUnit: 1.8 },
+        { id: "huevos", nombre: "Huevos", cant: 1, unidad: "unid", precioUnit: 250.0 },
+        { id: "cebolla_china", nombre: "Cebollita de verdeo y Jengibre", cant: 50, unidad: "g", precioUnit: 3.0 },
+        { id: "sillao", nombre: "Salsa de soja", cant: 20, unidad: "ml", precioUnit: 4.0 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa fundamental: Usar arroz cocido del día anterior bien frío de heladera.",
+      preparacion: "1. En sartén o wok muy caliente con aceite, salteá los cubitos de pollo con salsa de soja y jengibre rallado.<br>2. Hacé una omelette finita con el huevo, picala en trocitos y reservá.<br>3. Agregá el arroz frío al wok salteando fuerte.<br>4. Sumá más salsa de soja, la omelette y terminá con abundante cebollita de verdeo fresca picada."
+    },
+    pollo_guisado: {
+      nombre: "Guiso de pollo con papas y arroz",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Guiso_de_pollo_peruano.jpg/800px-Guiso_de_pollo_peruano.jpg",
+      ingredientes: [
+        { id: "pollo_presas", nombre: "Presas de Pollo", cant: 250, unidad: "g", precioUnit: 4.5 },
+        { id: "papa", nombre: "Papa negra / Spunta", cant: 150, unidad: "g", precioUnit: 1.2 },
+        { id: "zanahoria_alverja", nombre: "Zanahoria y Arvejas", cant: 80, unidad: "g", precioUnit: 2.5 },
+        { id: "cebolla_ajo", nombre: "Cebolla y Ajo", cant: 40, unidad: "g", precioUnit: 2.0 },
+        { id: "arroz", nombre: "Arroz largo fino", cant: 100, unidad: "g", precioUnit: 1.8 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Picar la cebolla fina, pelar y cortar la papa en cubos medianos.",
+      preparacion: "1. Sellá las presas de pollo salpimentadas en la cacerola con aceite.<br>2. Retirás el pollo, dorás cebolla y ajo en la misma cacerola.<br>3. Volvé a poner el pollo, sumá la zanahoria en rodajas, las arvejas, papas en cubos y agua o caldo.<br>4. Tapá y dejá guisar 20 min a fuego medio hasta que la papa esté tierna."
+    },
+    estofado_pollo: {
+      nombre: "Estofado de pollo al tuco",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Estofado_de_pollo_peruano.jpg/800px-Estofado_de_pollo_peruano.jpg",
+      ingredientes: [
+        { id: "pollo_presas", nombre: "Presas de Pollo", cant: 250, unidad: "g", precioUnit: 4.5 },
+        { id: "tomate_panca", nombre: "Puré de tomate y Pimentón", cant: 80, unidad: "g", precioUnit: 3.0 },
+        { id: "papa", nombre: "Papa negra / Spunta", cant: 150, unidad: "g", precioUnit: 1.2 },
+        { id: "zanahoria_alverja", nombre: "Zanahoria y Arvejas", cant: 80, unidad: "g", precioUnit: 2.5 },
+        { id: "arroz", nombre: "Arroz blanco", cant: 100, unidad: "g", precioUnit: 1.8 }
+      ],
+      sugerenciaPrevia: "💡 Recomendación: Usar puré de tomate o extracto junto con una hojita de laurel para un tuco más sabroso.",
+      preparacion: "1. Dorá las presas de pollo. Hacé un rehogado con cebolla picada, puré de tomate, pimentón dulce y laurel.<br>2. Incorporá el pollo, las zanahorias en rodajas, las arvejas y papas peladas al medio.<br>3. Agregá un chorrito de vino tinto o agua y cociná a fuego lento por 25 min.<br>4. Serví caliente con arroz blanco."
+    },
+    seco_pollo_frejoles: {
+      nombre: "Pollo al cilantro con porotos",
+      imagen: "imagenes/frejoles-de-res.jpg",
+      ingredientes: [
+        { id: "pollo_presas", nombre: "Presas de Pollo", cant: 250, unidad: "g", precioUnit: 4.5 },
+        { id: "culantro", nombre: "Cilantro procesado", cant: 40, unidad: "g", precioUnit: 4.0 },
+        { id: "frejol_id", nombre: "Porotos guisados", cant: 125, unidad: "g", precioUnit: 3.8 },
+        { id: "cebolla_ajo", nombre: "Cebolla y Ajo", cant: 40, unidad: "g", precioUnit: 2.0 },
+        { id: "arroz", nombre: "Arroz largo fino", cant: 100, unidad: "g", precioUnit: 1.8 }
+      ],
+      sugerenciaPrevia: "⚠️ Tarea previa: Dejar porotos en remojo la noche anterior y procesar el cilantro fresco con agua o caldo.",
+      preparacion: "1. Rehogá cebolla, ajo y agregá el cilantro procesado cocinando 5 min.<br>2. Incorporá el pollo y arvejas, cocinando tapado a fuego lento 20 min.<br>3. Serví junto a los porotos guisados bien cremosos y arroz blanco."
+    },
+    arroz_con_pollo: {
+      nombre: "Arroz con pollo al cilantro",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Arroz_con_pollo_peruano.jpg/800px-Arroz_con_pollo_peruano.jpg",
+      ingredientes: [
+        { id: "pollo_presas", nombre: "Presas de Pollo", cant: 250, unidad: "g", precioUnit: 4.5 },
+        { id: "culantro", nombre: "Cilantro procesado", cant: 50, unidad: "g", precioUnit: 4.0 },
+        { id: "arroz", nombre: "Arroz largo fino", cant: 120, unidad: "g", precioUnit: 1.8 },
+        { id: "zanahoria_alverja", nombre: "Zanahoria y Arvejas", cant: 80, unidad: "g", precioUnit: 2.5 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Procesar el cilantro fresco con un poquito de caldo o agua tibia.",
+      preparacion: "1. Sellá las presas de pollo en aceite y reservá.<br>2. Rehogá cebolla, ajo y el cilantro procesado hasta integrar bien.<br>3. Volvé a poner el pollo con caldo y cociná 10 min. Retirá el pollo, agregá el arroz, zanahorias y arvejas.<br>4. Cociná a fuego bajo tapado hasta que el arroz esté a punto y bien verde."
+    },
+    tallarines_rojos_pollo: {
+      nombre: "Tallarines con tuco y pollo",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Tallarines_rojos.jpg/800px-Tallarines_rojos.jpg",
+      ingredientes: [
+        { id: "pollo_presas", nombre: "Presas de Pollo", cant: 250, unidad: "g", precioUnit: 4.5 },
+        { id: "fideos", nombre: "Tallarines", cant: 125, unidad: "g", precioUnit: 2.2 },
+        { id: "tomate_panca", nombre: "Puré de tomate y Zanahoria", cant: 100, unidad: "g", precioUnit: 2.5 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Rallar la zanahoria bien finita para sumarla directo al tuco.",
+      preparacion: "1. Dorá las presas. Rehogá cebolla picada, ajo, laurel y pimentón.<br>2. Sumá el puré de tomate y la zanahoria rallada. Dejá espesar la salsa a fuego lento.<br>3. Agregá el pollo para terminar la cocción dentro del tuco.<br>4. Serví sobre los tallarines hervidos al dente con queso rallado por encima."
+    },
+    tallarines_verdes_bistec: {
+      nombre: "Tallarines con pesto/salsa verde y bife",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Tallarines_verdes.jpg/800px-Tallarines_verdes.jpg",
+      ingredientes: [
+        { id: "carne", nombre: "Bife de bola / Nalgas", cant: 150, unidad: "g", precioUnit: 12.0 },
+        { id: "fideos", nombre: "Tallarines", cant: 125, unidad: "g", precioUnit: 2.2 },
+        { id: "espinaca_albahaca", nombre: "Espinaca y Albahaca", cant: 100, unidad: "g", precioUnit: 3.5 },
+        { id: "queso_fresco", nombre: "Queso fresco / Cremoso", cant: 60, unidad: "g", precioUnit: 8.0 },
+        { id: "leche", nombre: "Leche entera", cant: 0.1, unidad: "litro", precioUnit: 1200.0 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Tierno ablandar la carne con suaves golpes si es un corte magro.",
+      preparacion: "1. Procesá la albahaca y espinaca pasadas por agua tibia con leche, queso fresco y cebolla sofrita.<br>2. Mezclá la pasta hervida con la salsa verde tibia.<br>3. Cociná el bife a la plancha caliente 1.5 min por lado.<br>4. Serví enseguida el bife jugoso sobre la pasta."
+    },
+    lomo_saltado: {
+      nombre: "Lomo salteado estilo criollo",
+      imagen: "imagenes/lomo-saltado.jpg",
+      ingredientes: [
+        { id: "carne", nombre: "Lomo / Lomo de res en tiras", cant: 180, unidad: "g", precioUnit: 14.0 },
+        { id: "cebolla_tomate", nombre: "Cebolla y Tomate en tiras", cant: 180, unidad: "g", precioUnit: 2.5 },
+        { id: "papa", nombre: "Papas fritas", cant: 200, unidad: "g", precioUnit: 1.2 },
+        { id: "sillao", nombre: "Salsa de soja y Vinagre", cant: 30, unidad: "ml", precioUnit: 4.0 },
+        { id: "arroz", nombre: "Arroz largo fino", cant: 100, unidad: "g", precioUnit: 1.8 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Tener las papas fritas crocantes hechas antes de encender el wok o sartén.",
+      preparacion: "1. Calentá la sartén o wok al máximo con un hilo de aceite.<br>2. Salteá las tiras de carne bien sazonadas a fuego fuerte.<br>3. Agregá cebolla, tomate en gajos, un chorro de vinagre y salsa de soja.<br>4. Apagá el fuego, mezclá con las papas fritas caliente y perejil/cilantro. Serví con arroz blanco."
+    },
+    pollo_saltado: {
+      nombre: "Pollo salteado con papas y arroz",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Pollo_saltado_peru.jpg/800px-Pollo_saltado_peru.jpg",
+      ingredientes: [
+        { id: "pollo_pechuga", nombre: "Suprema en tiras", cant: 180, unidad: "g", precioUnit: 6.5 },
+        { id: "cebolla_tomate", nombre: "Cebolla y Tomate en gajos", cant: 180, unidad: "g", precioUnit: 2.5 },
+        { id: "papa", nombre: "Papas fritas", cant: 200, unidad: "g", precioUnit: 1.2 },
+        { id: "sillao", nombre: "Salsa de soja y Vinagre", cant: 30, unidad: "ml", precioUnit: 4.0 },
+        { id: "arroz", nombre: "Arroz largo fino", cant: 100, unidad: "g", precioUnit: 1.8 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Cortar la suprema en tiras gruesas y salpimentar previamente.",
+      preparacion: "1. Salteá las tiras de pollo a fuego muy fuerte hasta dorar bien la superficie.<br>2. Agregá la cebolla roja en gajos y morrón/ají; salteá 1 minuto.<br>3. Sumá los tomates, salsa de soja y el chorrito de vinagre.<br>4. Mezclá con las papas fritas y serví con arroz blanco."
+    },
+    bistec_pobre: {
+      nombre: "Bife a caballo con papas fritas y arroz",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Bistec_a_lo_pobre.jpg/800px-Bistec_a_lo_pobre.jpg",
+      ingredientes: [
+        { id: "carne", nombre: "Bife de bola / Nalgas", cant: 160, unidad: "g", precioUnit: 12.0 },
+        { id: "papa", nombre: "Papas fritas", cant: 200, unidad: "g", precioUnit: 1.2 },
+        { id: "huevos", nombre: "Huevos", cant: 1, unidad: "unid", precioUnit: 250.0 },
+        { id: "platano", nombre: "Plátano / Banana frita", cant: 1, unidad: "unid", precioUnit: 300.0 },
+        { id: "arroz", nombre: "Arroz blanco", cant: 100, unidad: "g", precioUnit: 1.8 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Hacer las papas fritas primero para servirlas calientes.",
+      preparacion: "1. Dora la banana en rodajas a lo largo en sartén hasta dorar.<br>2. Freí el huevo en aceite dejando la yema blanda.<br>3. Cociná el bife sazonado a la plancha caliente.<br>4. Serví el bife montado con el huevo frito encima, acompañado de papas fritas, arroz y la banana frita."
+    },
+    cau_cau_pollo: {
+      nombre: "Guisillo de pollo con papas al palillo",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Cau_cau_de_pollo.jpg/800px-Cau_cau_de_pollo.jpg",
+      ingredientes: [
+        { id: "pollo_pechuga", nombre: "Suprema en cubitos", cant: 180, unidad: "g", precioUnit: 6.5 },
+        { id: "papa", nombre: "Papa en cubitos", cant: 200, unidad: "g", precioUnit: 1.2 },
+        { id: "palillo_aji", nombre: "Cúrcuma/Palillo y Ají", cant: 30, unidad: "g", precioUnit: 3.0 },
+        { id: "arroz", nombre: "Arroz largo fino", cant: 100, unidad: "g", precioUnit: 1.8 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Cortar el pollo y las papas en cubitos parejos.",
+      preparacion: "1. Rehogá cebolla con ajo, morrón picado y cúrcuma hasta dorar.<br>2. Agregá el pollo en cubos y dorá 3 minutos.<br>3. Sumá las papas en cubitos, arvejas y cubrí con caldo caliente.<br>4. Cociná 15 min y serví espolvoreado con menta o hierbabuena picada con arroz blanco."
+    },
+    arroz_tapado: {
+      nombre: "Arroz tapado con pino de carne",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Arroz_tapado_peruano.jpg/800px-Arroz_tapado_peruano.jpg",
+      ingredientes: [
+        { id: "carne_molida", nombre: "Carne picada / molida", cant: 150, unidad: "g", precioUnit: 9.0 },
+        { id: "cebolla_tomate", nombre: "Cebolla picada fina", cant: 60, unidad: "g", precioUnit: 2.0 },
+        { id: "huevos", nombre: "Huevos duros y Pasas", cant: 0.5, unidad: "unid", precioUnit: 300.0 },
+        { id: "arroz", nombre: "Arroz blanco", cant: 150, unidad: "g", precioUnit: 1.8 }
+      ],
+      sugerenciaPrevia: "💡 Tarea previa: Hervir los huevos duros y picarlos finos.",
+      preparacion: "1. Dora la carne picada con cebolla, ajo, pimentón dulce, comino, pasas de uva y aceitunas picadas.<br>2. Añadí el huevo duro picado al apagar el fuego.<br>3. En una taza redonda enmantecada poné una capa de arroz cocido, el pino de carne al medio y otra capa de arroz haciendo presión.<br>4. Desmoldá en el plato y serví."
+    },
+    quinua_huevo: {
+      nombre: "Guiso de Quinua con arroz y huevo frito",
+      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Guiso_de_quinua.jpg/800px-Guiso_de_quinua.jpg",
+      ingredientes: [
+        { id: "quinua", nombre: "Quinoa", cant: 80, unidad: "g", precioUnit: 5.0 },
+        { id: "huevos", nombre: "Huevos", cant: 1, unidad: "unid", precioUnit: 250.0 },
+        { id: "queso_fresco", nombre: "Queso cremoso en cubos", cant: 40, unidad: "g", precioUnit: 8.0 },
+        { id: "arroz", nombre: "Arroz blanco", cant: 100, unidad: "g", precioUnit: 1.8 }
+      ],
+      sugerenciaPrevia: "⚠️ Tarea previa: Enjuagar la quinoa con agua en colador fino varias veces antes de cocinar.",
+      preparacion: "1. Dorá cebolla y ajo en la olla. Sumá la quinoa lavada, cubrí con agua/caldo y cociná 20 min.<br>2. Agregá cubos de queso cremoso al apagar el fuego mezclando despacio.<br>3. Freí el huevo dejando la yema jugosa.<br>4. Serví la quinoa cremosa con arroz y el huevo frito arriba."
+    }
+  };
+
+  function obtenerCatalogoActual() {
+    return paisActual === "PE" ? CatPlatosPeru : CatPlatosArgentina;
+  }
+
+  function cambiarPais() {
+    paisActual = document.getElementById('selectPais').value;
+    
+    // Guardar selección de plato actual si existe
+    const seleccionesPrevias = {};
+    const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    dias.forEach(d => {
+      const el = document.getElementById(d);
+      if (el) seleccionesPrevias[d] = el.value;
+    });
+
+    cargarOpcionesPlatos();
+
+    // Reasignar selecciones
+    dias.forEach(d => {
+      if (seleccionesPrevias[d]) {
+        document.getElementById(d).value = seleccionesPrevias[d];
+      }
+    });
+
+    if (document.getElementById('resultado').style.display !== 'none') {
+      generarPlanificacion();
+    }
+  }
+
+  function cargarOpcionesPlatos() {
+    const catalog = obtenerCatalogoActual();
+    const selectores = document.querySelectorAll('.select-plato');
+    selectores.forEach(select => {
+      select.innerHTML = '';
+      for (const [key, item] of Object.entries(catalog)) {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = item.nombre;
+        select.appendChild(option);
+      }
+    });
+
+    if (!document.getElementById('lunes').value) {
+      document.getElementById('lunes').value = 'lentejas_pescado';
+      document.getElementById('martes').value = 'carne_papas';
+      document.getElementById('miercoles').value = 'pollo_plancha';
+      document.getElementById('jueves').value = 'frejol_atun';
+      document.getElementById('viernes').value = 'pure_broaster';
+      document.getElementById('sabado').value = 'tallarin_verde';
+      document.getElementById('domingo').value = 'ninguno';
+    }
+  }
+
+  function toggleSelectAll(masterCheckbox) {
+    const checkboxes = document.querySelectorAll('.despensa');
+    checkboxes.forEach(cb => {
+      cb.checked = masterCheckbox.checked;
+    });
+  }
+
+  function actualizarEstadoSelectAll() {
+    const checkboxes = document.querySelectorAll('.despensa');
+    const masterCheckbox = document.getElementById('selectAllCheckbox');
+    const todosMarcados = Array.from(checkboxes).every(cb => cb.checked);
+    masterCheckbox.checked = todosMarcados;
+  }
+
+  function seleccionarAleatorio() {
+    const catalog = obtenerCatalogoActual();
+    const opcionesValidas = Object.keys(catalog).filter(k => k !== 'ninguno');
+    
+    const copiaOpciones = [...opcionesValidas];
+    for (let i = copiaOpciones.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copiaOpciones[i], copiaOpciones[j]] = [copiaOpciones[j], copiaOpciones[i]];
+    }
+
+    const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    dias.forEach((dia, index) => {
+      document.getElementById(dia).value = copiaOpciones[index];
+    });
+  }
+
+  function cambiarPersonas(delta) {
+    personas += delta;
+    if (personas < minPersonas) personas = minPersonas;
+    if (personas > maxPersonas) personas = maxPersonas;
+
+    document.getElementById('cantPersonas').innerText = personas;
+    document.getElementById('btnMinus').disabled = (personas === minPersonas);
+    document.getElementById('btnPlus').disabled = (personas === maxPersonas);
+  }
+
+  function formatearCantidad(cant, unidad) {
+    if (cant >= 1000 && unidad === 'g') {
+      return (cant / 1000).toFixed(2) + ' kg';
+    }
+    if (unidad === 'unid' || unidad === 'lata' || unidad === 'litro') {
+      return (cant < 1 && unidad === 'litro' ? cant.toFixed(2) : Math.ceil(cant)) + ' ' + unidad;
+    }
+    return Math.round(cant) + ' ' + unidad;
+  }
+
+  function ejecutarGeneracion() {
+    document.getElementById('resultado').style.display = 'none';
+    document.getElementById('seccion-sugerencias').style.display = 'none';
+    document.getElementById('spinner').style.display = 'block';
+
+    setTimeout(() => {
+      document.getElementById('spinner').style.display = 'none';
+      generarPlanificacion();
+    }, 800);
+  }
+
+  function generarPlanificacion() {
+    const catalog = obtenerCatalogoActual();
+    const simboloMoneda = paisActual === "PE" ? "S/" : "$";
+    const ignorar = [];
+    document.querySelectorAll('.despensa:checked').forEach(e => ignorar.push(e.value));
+
+    const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    let compras = {};
+    let costoTotal = 0;
+    let platosSeleccionados = [];
+
+    dias.forEach(dia => {
+      const platoKey = document.getElementById(dia).value;
+      if (platoKey !== 'ninguno' && catalog[platoKey]) {
+        const plato = catalog[platoKey];
+        platosSeleccionados.push({ dia: dia.charAt(0).toUpperCase() + dia.slice(1), ...plato });
+
+        plato.ingredientes.forEach(ing => {
+          if (ignorar.includes(ing.id)) return;
+
+          const cantidadTotal = ing.cant * personas;
+          const costoIngrediente = cantidadTotal * ing.precioUnit;
+
+          if (!compras[ing.nombre]) {
+            compras[ing.nombre] = { cant: 0, unidad: ing.unidad, costo: 0 };
+          }
+          compras[ing.nombre].cant += cantidadTotal;
+          compras[ing.nombre].costo += costoIngrediente;
+          costoTotal += costoIngrediente;
+        });
+      }
+    });
+
+    // Renderizar Lista de Compras
+    let htmlCompras = '<ul>';
+    for (const [nombre, data] of Object.entries(compras)) {
+      htmlCompras += `<li><strong>${nombre}:</strong> ${formatearCantidad(data.cant, data.unidad)} — <em>${simboloMoneda} ${data.costo.toFixed(2)}</em></li>`;
+    }
+    htmlCompras += '</ul>';
+
+    document.getElementById('lista-ingredientes').innerHTML = htmlCompras;
+    document.getElementById('costo-total').innerText = `${simboloMoneda} ${costoTotal.toFixed(2)}`;
+    document.getElementById('resultado').style.display = 'block';
+
+    // Renderizar con el orden: Insumos exactos -> Tarea previa -> Pasos de Preparación
+    let htmlSugerencias = '';
+    if (platosSeleccionados.length === 0) {
+      htmlSugerencias = '<p>No has seleccionado ningún plato para la semana.</p>';
+    } else {
+      platosSeleccionados.forEach(item => {
+        let listaInsumosPlato = item.ingredientes.map(ing => {
+          let cantCalculada = ing.cant * personas;
+          return `<b>${ing.nombre}:</b> ${formatearCantidad(cantCalculada, ing.unidad)}`;
+        }).join(' • ');
+
+        htmlSugerencias += `
+          <div class="prep-card">
+            <div class="prep-day">📌 ${item.dia}</div>
+            <div class="prep-dish">${item.nombre}</div>
+            ${item.imagen ? `<img src="${item.imagen}" alt="${item.nombre}" class="dish-img" loading="lazy" onerror="this.style.display='none'">` : ''}
+            
+            <!-- 1. Insumos exactos -->
+            <div class="prep-quantities"><strong>Insumos exactos para ${personas} personas:</strong><br>${listaInsumosPlato}</div>
+            
+            <!-- 2. Tarea previa -->
+            ${item.sugerenciaPrevia ? `<div class="prep-pre">${item.sugerenciaPrevia}</div>` : ''}
+            
+            <!-- 3. Pasos de Preparación -->
+            <div class="prep-desc"><strong>Pasos de Preparación:</strong><br>${item.preparacion}</div>
+          </div>
+        `;
+      });
+    }
+
+    document.getElementById('lista-sugerencias').innerHTML = htmlSugerencias;
+    document.getElementById('seccion-sugerencias').style.display = 'block';
+  }
+
+  window.onload = function() {
+    cargarOpcionesPlatos();
+    cambiarPersonas(0);
+  };
+</script>
+
+</body>
+</html>
