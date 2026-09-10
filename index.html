@@ -1,9 +1,11 @@
-<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Planificador de Comida Semanal</title>
+  <title>Sazonify - Tu Menú Peruano a la Mano</title>
+  <link rel="icon" type="image/png" href="imagenes/causa-rellena.png">
+  <!-- Librería externa para exportar a PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f6f8; color: #2d3748; margin: 0; padding: 12px; }
@@ -13,7 +15,7 @@
     
     /* Selector de País */
     .country-group { display: flex; align-items: center; justify-content: space-between; background: #fffaf0; padding: 14px 18px; border-radius: 12px; border: 1px solid #feebc8; margin-bottom: 12px; }
-    .country-label { font-weight: 600; color: #c05621; font-size: 1rem; }
+    .country-label { font-weight: 600; color: #c05621; font-size: 1rem; display: flex;  align-items: center;  gap: 4px;}
     .country-select { padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 8px; background-color: white; font-size: 0.95rem; font-weight: bold; color: #2d3748; outline: none; cursor: pointer; }
 
     /* Contador de Personas */
@@ -45,9 +47,18 @@
     .checkbox-card { background: #f7fafc; padding: 10px 12px; border-radius: 8px; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 8px; border: 1px solid #e2e8f0; user-select: none; }
     .checkbox-card input { width: 18px; height: 18px; accent-color: #3182ce; cursor: pointer; }
 
-    /* Botón de Acción */
+    /* Botón de Acción Principal */
     .btn-submit { background-color: #38a169; color: white; border: none; padding: 16px; font-size: 1.05rem; font-weight: 700; border-radius: 12px; cursor: pointer; width: 100%; margin-top: 24px; transition: background 0.2s, transform 0.1s; box-shadow: 0 4px 12px rgba(56,161,105,0.25); }
     .btn-submit:active { transform: scale(0.98); background-color: #2f855a; }
+
+    /* Botones de Exportación (WhatsApp y PDF) */
+    .export-actions { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+    .btn-export { flex: 1; min-width: 180px; padding: 12px 16px; font-size: 0.95rem; font-weight: 700; border-radius: 10px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.1s, background 0.2s; }
+    .btn-export:active { transform: scale(0.97); }
+    .btn-whatsapp { background-color: #25D366; color: white; box-shadow: 0 4px 10px rgba(37,211,102,0.25); }
+    .btn-whatsapp:hover { background-color: #20ba5a; }
+    .btn-pdf { background-color: #e53e3e; color: white; box-shadow: 0 4px 10px rgba(229,62,62,0.25); }
+    .btn-pdf:hover { background-color: #c53030; }
 
     /* Spinner de Carga */
     .spinner-container { display: none; text-align: center; margin: 24px 0; }
@@ -55,9 +66,9 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .spinner-text { font-size: 0.95rem; color: #4a5568; font-weight: 600; }
 
-    /* Resultados */
-    .result-box { margin-top: 24px; padding: 16px; background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 12px; }
-    .cost-total { background: #38a169; color: white; padding: 12px 16px; border-radius: 10px; display: block; text-align: center; font-size: 1.15rem; font-weight: 700; margin-top: 16px; }
+    /* Resultados (Cambio a tonos Púrpura) */
+    .result-box { margin-top: 24px; padding: 16px; background: #faf5ff; border: 1px solid #e9d8fd; border-radius: 12px; }
+    .cost-total { background: #805ad5; color: white; padding: 12px 16px; border-radius: 10px; display: block; text-align: center; font-size: 1.15rem; font-weight: 700; margin-top: 16px; }
     ul { padding-left: 20px; margin: 8px 0; }
     li { margin-bottom: 6px; font-size: 0.95rem; }
 
@@ -79,11 +90,14 @@
 <body>
 
 <div class="container">
-  <h1>Planificador de comida semanal</h1>
+  <h1>Sazonify - Tu Menú Peruano a la Mano</h1>
   
   <!-- Selección de País -->
   <div class="country-group">
-    <span class="country-label">🌎 Selección de País:</span>
+    <label for="country-select" class="country-label">
+      <span class="icon">🌎</span>
+      <span>País:</span>
+    </label>
     <select id="selectPais" class="country-select" onchange="cambiarPais()">
       <option value="PE">🇵🇪 Perú (S/ PEN)</option>
       <option value="AR">🇦🇷 Argentina ($ ARS)</option>
@@ -148,17 +162,26 @@
     <div class="spinner-text">Calculando ingredientes y organizando recetas...</div>
   </div>
 
-  <!-- Lista de Compras -->
-  <div id="resultado" class="result-box" style="display:none;">
-    <h2 style="margin-top:0; border:none; color:#276749;">🛒 Lista de Compras Semanal</h2>
-    <div id="lista-ingredientes"></div>
-    <div class="cost-total">Estimado de Gastos: <span id="costo-total">S/ 0.00</span></div>
+  <!-- Área Exportable (Lista de Compras + Sugerencias) -->
+  <div id="area-impresion">
+    <!-- Lista de Compras -->
+    <div id="resultado" class="result-box" style="display:none;">
+      <h2 style="margin-top:0; border:none; color:#6b46c1;">🛒 Lista de Compras Semanal</h2>
+      <div id="lista-ingredientes"></div>
+      <div class="cost-total">Estimado de Gastos: <span id="costo-total">S/ 0.00</span></div>
+    </div>
+
+    <!-- Sugerencias de Preparación -->
+    <div id="seccion-sugerencias" class="prep-box" style="display:none;">
+      <h2 style="margin-top:0; border:none; color:#c05621;">🍳 Guía de Preparación e Insumos por Plato</h2>
+      <div id="lista-sugerencias"></div>
+    </div>
   </div>
 
-  <!-- Sugerencias de Preparación -->
-  <div id="seccion-sugerencias" class="prep-box" style="display:none;">
-    <h2 style="margin-top:0; border:none; color:#c05621;">🍳 Guía de Preparación e Insumos por Plato</h2>
-    <div id="lista-sugerencias"></div>
+  <!-- Botones para Compartir / Exportar (Visibles al generar la lista) -->
+  <div id="seccion-exportar" class="export-actions" style="display:none;">
+    <button class="btn-export btn-whatsapp" onclick="enviarWhatsApp()">💬 Enviar por WhatsApp</button>
+    <button class="btn-export btn-pdf" onclick="descargarPDF()">📄 Descargar en PDF</button>
   </div>
 </div>
 
@@ -167,6 +190,8 @@
   const maxPersonas = 10;
   const minPersonas = 1;
   let paisActual = "PE";
+  let comprasGlobales = {};
+  let costoTotalGlobal = 0;
 
   // Catálogos por País
   const CatPlatosPeru = {
@@ -805,6 +830,7 @@
   function ejecutarGeneracion() {
     document.getElementById('resultado').style.display = 'none';
     document.getElementById('seccion-sugerencias').style.display = 'none';
+    document.getElementById('seccion-exportar').style.display = 'none';
     document.getElementById('spinner').style.display = 'block';
 
     setTimeout(() => {
@@ -820,8 +846,8 @@
     document.querySelectorAll('.despensa:checked').forEach(e => ignorar.push(e.value));
 
     const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-    let compras = {};
-    let costoTotal = 0;
+    comprasGlobales = {};
+    costoTotalGlobal = 0;
     let platosSeleccionados = [];
 
     dias.forEach(dia => {
@@ -836,25 +862,25 @@
           const cantidadTotal = ing.cant * personas;
           const costoIngrediente = cantidadTotal * ing.precioUnit;
 
-          if (!compras[ing.nombre]) {
-            compras[ing.nombre] = { cant: 0, unidad: ing.unidad, costo: 0 };
+          if (!comprasGlobales[ing.nombre]) {
+            comprasGlobales[ing.nombre] = { cant: 0, unidad: ing.unidad, costo: 0 };
           }
-          compras[ing.nombre].cant += cantidadTotal;
-          compras[ing.nombre].costo += costoIngrediente;
-          costoTotal += costoIngrediente;
+          comprasGlobales[ing.nombre].cant += cantidadTotal;
+          comprasGlobales[ing.nombre].costo += costoIngrediente;
+          costoTotalGlobal += costoIngrediente;
         });
       }
     });
 
     // Renderizar Lista de Compras
     let htmlCompras = '<ul>';
-    for (const [nombre, data] of Object.entries(compras)) {
+    for (const [nombre, data] of Object.entries(comprasGlobales)) {
       htmlCompras += `<li><strong>${nombre}:</strong> ${formatearCantidad(data.cant, data.unidad)} — <em>${simboloMoneda} ${data.costo.toFixed(2)}</em></li>`;
     }
     htmlCompras += '</ul>';
 
     document.getElementById('lista-ingredientes').innerHTML = htmlCompras;
-    document.getElementById('costo-total').innerText = `${simboloMoneda} ${costoTotal.toFixed(2)}`;
+    document.getElementById('costo-total').innerText = `${simboloMoneda} ${costoTotalGlobal.toFixed(2)}`;
     document.getElementById('resultado').style.display = 'block';
 
     // Renderizar con el orden: Insumos exactos -> Tarea previa -> Pasos de Preparación
@@ -889,6 +915,37 @@
 
     document.getElementById('lista-sugerencias').innerHTML = htmlSugerencias;
     document.getElementById('seccion-sugerencias').style.display = 'block';
+    document.getElementById('seccion-exportar').style.display = 'flex';
+  }
+
+  // --- Funciones para WhatsApp y PDF ---
+  function enviarWhatsApp() {
+    const simboloMoneda = paisActual === "PE" ? "S/" : "$";
+    let texto = `🛒 *LISTA DE COMPRAS SEMANAL (${personas} personas)*\n\n`;
+
+    for (const [nombre, data] of Object.entries(comprasGlobales)) {
+      texto += `• *${nombre}:* ${formatearCantidad(data.cant, data.unidad)}\n`;
+    }
+
+    texto += `\n💰 *Estimado de Gastos:* ${simboloMoneda} ${costoTotalGlobal.toFixed(2)}`;
+
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
+    window.open(url, '_blank');
+  }
+
+  function descargarPDF() {
+    const elemento = document.getElementById('area-impresion');
+    if (!elemento) return;
+
+    const opciones = {
+      margin:       10,
+      filename:     'Plan_Semanal_Menu.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, allowTaint: true, logging: false },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opciones).from(elemento).save().catch(err => console.error("Error al exportar PDF:", err));
   }
 
   window.onload = function() {
